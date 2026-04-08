@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Arabic.ai · CEO Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; background: #fff; }
+    @media print {
+      .no-print { display: none !important; }
+      body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const P = '#6B21A8';
+const STATUSES = ['On Track','At Risk','In Progress','Done','Overdue','Stalled','Delayed','Not Started'];
+const STAGES   = ['Prospecting','Qualifying','Proposal','Negotiation','Committed'];
+const KEY      = 'arabicai_dashboard_v1';
+const iCls     = "border border-gray-200 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-1 focus:ring-purple-600";
+const th       = "text-xs font-semibold text-gray-500 uppercase tracking-wide text-left py-2 pr-3 whitespace-nowrap";
+const td       = "py-2 pr-3 text-sm align-top";
+
+const sc = s => ({'On Track':'bg-green-100 text-green-800','Done':'bg-green-100 text-green-800','At Risk':'bg-amber-100 text-amber-800','Stalled':'bg-red-100 text-red-800','Overdue':'bg-red-100 text-red-800','Delayed':'bg-red-100 text-red-800','In Progress':'bg-blue-100 text-blue-800','Not Started':'bg-gray-100 text-gray-500'}[s]||'bg-gray-100 text-gray-500');
+const mkArr = (n,d) => Array.from({length:n},()=>({...d}));
+const now   = () => new Date().toLocaleString('en-GB',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+
+const DEFAULT = {
+  weekDate:'08/04/2026', lu:{},
+  fin:{a:'',t:'',ly:'',pipe:'',commit:''},
+  deals:[
+    {name:'Humain',owner:'Nour',value:'',stage:'Prospecting',status:'In Progress',update:''},
+    {name:'Kuwait – Erth',owner:'Zayed',value:'',stage:'Prospecting',status:'In Progress',update:''},
+    {name:'Ministry of Tourism – KSA',owner:'TBC',value:'',stage:'Prospecting',status:'In Progress',update:''},
+    {name:'MOFA – UAE',owner:'TBC',value:'',stage:'Prospecting',status:'In Progress',update:''},
+    {name:'',owner:'',value:'',stage:'Prospecting',status:'In Progress',update:''},
+  ],
+  np:  mkArr(5,{name:'',owner:'',value:'',scope:''}),
+  sns: mkArr(3,{step:'',owner:'',due:'',status:'In Progress'}),
+  mkt:'',
+  mns: mkArr(3,{action:'',owner:'',due:'',status:'In Progress'}),
+  gov:{product:'',marketing:'',sales:'',target:'',status:'In Progress',owner:''},
+  bnk:{product:'',marketing:'',sales:'',target:'',status:'In Progress',owner:''},
+  cst:{product:'',commercial:'',marketing:'',target:'',status:'In Progress',owner:'Eyad Karadsheh'},
+  trl:{product:'',marketing:'',commercial:'',target:'',status:'In Progress',owner:''},
+  cdl: mkArr(3,{name:'',value:'',stage:'Prospecting',status:'In Progress'}),
+  cpj: mkArr(5,{name:'',update:'',status:'In Progress'}),
+  urd:{pipeline:'',deals:''},
+  scr:'', ops:'',
+};
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(!raw) return DEFAULT;
+    const p = JSON.parse(raw);
+    return {
+      ...DEFAULT,...p,
+      fin:{...DEFAULT.fin,...p.fin},
+      gov:{...DEFAULT.gov,...p.gov},
+      bnk:{...DEFAULT.bnk,...p.bnk},
+      cst:{...DEFAULT.cst,...p.cst},
+      trl:{...DEFAULT.trl,...p.trl},
+      urd:{...DEFAULT.urd,...p.urd},
+    };
+  }catch{ return DEFAULT; }
+}
+
+/* ─── tiny components ─── */
+function F({v,set,edit,ph='',multi=false,max}){
+  if(!edit) return <span className={!v?'text-gray-400 italic text-sm':'text-sm'}>{v||ph||'—'}</span>;
+  const p={value:v,onChange:e=>set(e.target.value),placeholder:ph,className:iCls};
+  if(max) p.maxLength=max;
+  return multi?<textarea {...p} rows={2} className={iCls+' resize-none'}/>:<input {...p}/>;
+}
+function Bdg({v,set,edit}){
+  if(!edit) return <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${sc(v)}`}>{v||'—'}</span>;
+  return <select value={v} onChange={e=>set(e.target.value)} className="text-xs border rounded px-1 py-0.5">{STATUSES.map(s=><option key={s}>{s}</option>)}</select>;
+}
+function Stg({v,set,edit}){
+  if(!edit) return <span className="text-sm text-gray-600">{v}</span>;
+  return <select value={v} onChange={e=>set(e.target.value)} className="text-xs border rounded px-1 py-0.5">{STAGES.map(s=><option key={s}>{s}</option>)}</select>;
+}
+function Sec({title,owner,edit,onEdit,onSave,lu,children,borderLeft}){
+  return(
+    <div className={`bg-white rounded-xl shadow-sm mb-5 overflow-hidden ${borderLeft?'border-l-4 border-amber-400 border border-gray-200':'border border-gray-200'}`}>
+      <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+        <div>
+          <h2 className="font-bold text-xs uppercase tracking-widest" style={{color:P}}>{title}</h2>
+          {owner&&<p className="text-xs text-gray-400 mt-0.5">Owner: {owner}</p>}
+        </div>
+        <div className="flex items-center gap-2 no-print">
+          {lu&&<span className="text-xs text-gray-400">{lu}</span>}
+          {edit
+            ?<button onClick={onSave} className="text-xs text-white px-3 py-1 rounded-full" style={{background:P}}>Save</button>
+            :<button onClick={onEdit} className="text-xs px-3 py-1 rounded-full border" style={{color:P,borderColor:'#d8b4fe'}}>Edit</button>}
+        </div>
+      </div>
+      <div className="p-5">{children}</div>
+    </div>
+  );
+}
+function KPI({label,actual,target,ly,edit,sA,sT,sL}){
+  const pct=(a,b)=>a&&b&&!isNaN(a)&&!isNaN(b)?Math.round(((+a-+b)/+b)*100):null;
+  const pvt=pct(actual,target),pvly=pct(actual,ly);
+  return(
+    <div className="flex-1 border border-gray-100 rounded-lg p-4 min-w-0">
+      <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">{label}</p>
+      {edit?(
+        <div className="space-y-1">
+          <input value={actual} onChange={e=>sA(e.target.value)} placeholder="Actual ($)" className={iCls}/>
+          <input value={target} onChange={e=>sT(e.target.value)} placeholder="Target ($)" className={iCls}/>
+          <input value={ly}     onChange={e=>sL(e.target.value)} placeholder="Last Year ($)" className={iCls}/>
+        </div>
+      ):(
+        <>
+          <p className="text-2xl font-bold text-black mb-1">{actual?`$${(+actual).toLocaleString()}`:'—'}</p>
+          <div className="flex gap-3 flex-wrap">
+            {pvt!==null&&<span className={`text-xs font-medium ${pvt>=0?'text-green-600':'text-red-500'}`}>{pvt>=0?'+':''}{pvt}% vs Target</span>}
+            {pvly!==null&&<span className={`text-xs font-medium ${pvly>=0?'text-green-600':'text-red-500'}`}>{pvly>=0?'+':''}{pvly}% vs LY</span>}
+          </div>
+          {target&&<p className="text-xs text-gray-400 mt-1">Target: ${(+target).toLocaleString()}</p>}
+        </>
+      )}
+    </div>
+  );
+}
+
+const STREAMS = [
+  {key:'gov',title:'Government Stream',desc:'Large government projects — LLM on-prem deployments, Agentic Platform, FDEs. Outreach-driven. Product building agentic platform templates.',
+    fields:[{k:'product',label:'Product Update',ph:'Agentic platform template progress...'},{k:'marketing',label:'Marketing Update',ph:'Outreach campaigns, content pipeline...'},{k:'sales',label:'Sales Update',ph:'Active conversations, intros, status...'}]},
+  {key:'bnk',title:'Banking Stream',desc:'B2C and SME loan eligibility agents. Rakan owns development. Zayed to intro 2 banks. Outreach ongoing.',
+    fields:[{k:'product',label:'Product Update',ph:'SME loan eligibility agent (Rakan)...'},{k:'marketing',label:'Marketing Update',ph:'Banking outreach campaigns...'},{k:'sales',label:'Sales Update',ph:'Bank intros (Zayed), active deals...'}]},
+  {key:'cst',title:'Custom Stream',desc:'Custom AI builds for enterprise clients. Owned by Eyad Karadsheh.',
+    fields:[{k:'product',label:'Product Update',ph:'Build status, milestones...'},{k:'commercial',label:'Commercial Assets',ph:'Proposals, decks, demos ready...'},{k:'marketing',label:'Marketing Update',ph:'Support materials, positioning...'}]},
+  {key:'trl',title:'Translate Agent',desc:'Deep Translate Agent — AI-powered global translation. Tech team building. Requires commercial and marketing readiness.',
+    fields:[{k:'product',label:'Product / Tech',ph:'Build progress from tech team...'},{k:'marketing',label:'Marketing',ph:'GTM readiness, content...'},{k:'commercial',label:'Commercial',ph:'Pipeline, partnerships, revenue potential...'}]},
+];
+
+/* ─── main dashboard ─── */
+function Dashboard(){
+  const [s,setS]   = useState(loadState);
+  const [mm,setMm] = useState(false);
+  const [ed,setEd] = useState(false);
+  const [edDate,setEdDate] = useState(false);
+
+  useEffect(()=>{ try{ localStorage.setItem(KEY,JSON.stringify(s)); }catch{} },[s]);
+
+  const toggleEdit = k => setEd(p=>({...p,[k]:true}));
+  const saveEdit   = k => { setEd(p=>({...p,[k]:false})); setS(p=>({...p,lu:{...p.lu,[k]:now()}})); };
+
+  const upd   = k  => v  => setS(p=>({...p,[k]:v}));
+  const updK  = (k,f) => v  => setS(p=>({...p,[k]:{...p[k],[f]:v}}));
+  const updArr= (k,i,f)=> v  => setS(p=>({...p,[k]:p[k].map((r,j)=>j===i?{...r,[f]:v}:r)}));
+  const sStream = sk => f => v => updK(sk,f)(v);
+
+  const reset = () => { if(confirm('Reset all data? This cannot be undone.')){ localStorage.removeItem(KEY); setS(DEFAULT); }};
+
+  return(
+    <div className="min-h-screen bg-white" style={{fontFamily:"'Inter',system-ui,sans-serif",fontSize:mm?'15px':'13px'}}>
+
+      {/* ── HEADER ── */}
+      <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 bg-white z-20 shadow-sm">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="font-black text-lg tracking-tight" style={{color:P}}>Arabic.ai</h1>
+            <span className="text-gray-300 text-lg">|</span>
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Leadership Dashboard</span>
+          </div>
+          <div className="flex items-center gap-1 mt-0.5">
+            <span className="text-xs text-gray-400">Week of</span>
+            {edDate
+              ?<input value={s.weekDate} onChange={e=>upd('weekDate')(e.target.value)} onBlur={()=>setEdDate(false)} className="text-xs border rounded px-1 py-0.5 w-24 ml-1" autoFocus/>
+              :<button onClick={()=>setEdDate(true)} className="text-xs font-medium underline decoration-dotted ml-1" style={{color:P}}>{s.weekDate}</button>}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 no-print">
+          <button onClick={()=>setMm(m=>!m)} className="text-xs px-3 py-1.5 rounded-full border transition-all"
+            style={mm?{background:P,color:'#fff',borderColor:P}:{color:P,borderColor:'#d8b4fe'}}>
+            {mm?'Exit Meeting Mode':'Meeting Mode'}
+          </button>
+          <button onClick={()=>window.print()} className="text-xs px-3 py-1.5 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50">Print</button>
+          <button onClick={reset} className="text-xs px-3 py-1.5 rounded-full border border-red-200 text-red-400 hover:bg-red-50">Reset</button>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 py-6">
+
+        {/* ── FINANCE ── */}
+        <Sec title="Finance" owner="CFO" edit={ed.fin} onEdit={()=>toggleEdit('fin')} onSave={()=>saveEdit('fin')} lu={s.lu.fin}>
+          <div className="flex gap-3 flex-wrap">
+            <KPI label="Revenue YTD" actual={s.fin.a} target={s.fin.t} ly={s.fin.ly} edit={ed.fin}
+              sA={updK('fin','a')} sT={updK('fin','t')} sL={updK('fin','ly')}/>
+            <div className="flex-1 border border-gray-100 rounded-lg p-4 min-w-0">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Total Pipeline</p>
+              {ed.fin?<input value={s.fin.pipe} onChange={e=>updK('fin','pipe')(e.target.value)} placeholder="Pipeline ($)" className={iCls}/>
+                :<p className="text-2xl font-bold">{s.fin.pipe?`$${(+s.fin.pipe).toLocaleString()}`:'—'}</p>}
+            </div>
+            <div className="flex-1 border border-gray-100 rounded-lg p-4 min-w-0">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Committed to Close — This Month</p>
+              {ed.fin?<input value={s.fin.commit} onChange={e=>updK('fin','commit')(e.target.value)} placeholder="Committed ($)" className={iCls}/>
+                :<p className="text-2xl font-bold">{s.fin.commit?`$${(+s.fin.commit).toLocaleString()}`:'—'}</p>}
+            </div>
+          </div>
+        </Sec>
+
+        {/* ── SALES ── */}
+        <Sec title="Sales" owner="VP Sales" edit={ed.sales} onEdit={()=>toggleEdit('sales')} onSave={()=>saveEdit('sales')} lu={s.lu.sales}>
+          <p className="font-semibold text-xs uppercase tracking-wide mb-3" style={{color:P}}>Top 5 Deals in Pipeline</p>
+          <div className="overflow-x-auto mb-6">
+            <table className="w-full">
+              <thead><tr>{['Deal','Owner','Value ($)','Stage','Status','Update'].map(h=><th key={h} className={th}>{h}</th>)}</tr></thead>
+              <tbody>{s.deals.map((d,i)=>(
+                <tr key={i} className={i%2===0?'bg-white':'bg-gray-50'}>
+                  <td className={td}><F v={d.name}   set={updArr('deals',i,'name')}   edit={ed.sales} ph="Deal name"/></td>
+                  <td className={td}><F v={d.owner}  set={updArr('deals',i,'owner')}  edit={ed.sales} ph="Owner"/></td>
+                  <td className={td}><F v={d.value}  set={updArr('deals',i,'value')}  edit={ed.sales} ph="0"/></td>
+                  <td className={td}><Stg v={d.stage} set={updArr('deals',i,'stage')} edit={ed.sales}/></td>
+                  <td className={td}><Bdg v={d.status} set={updArr('deals',i,'status')} edit={ed.sales}/></td>
+                  <td className={td+" min-w-40"}><F v={d.update} set={updArr('deals',i,'update')} edit={ed.sales} ph="1-liner..."/></td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+
+          <p className="font-semibold text-xs uppercase tracking-wide mb-3" style={{color:P}}>New Additions to Pipeline</p>
+          <div className="overflow-x-auto mb-6">
+            <table className="w-full">
+              <thead><tr>{['Company / Deal','Owner','Value ($)','Scope (≤8 words)'].map(h=><th key={h} className={th}>{h}</th>)}</tr></thead>
+              <tbody>{s.np.map((r,i)=>(
+                <tr key={i} className={i%2===0?'bg-white':'bg-gray-50'}>
+                  <td className={td}><F v={r.name}  set={updArr('np',i,'name')}  edit={ed.sales} ph="Company"/></td>
+                  <td className={td}><F v={r.owner} set={updArr('np',i,'owner')} edit={ed.sales} ph="Owner"/></td>
+                  <td className={td}><F v={r.value} set={updArr('np',i,'value')} edit={ed.sales} ph="0"/></td>
+                  <td className={td+" min-w-48"}><F v={r.scope} set={updArr('np',i,'scope')} edit={ed.sales} ph="Brief scope..." max={60}/></td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+
+          <p className="font-semibold text-xs uppercase tracking-wide mb-3" style={{color:P}}>Next Steps from Last Meeting</p>
+          <table className="w-full">
+            <thead><tr>{['Action','Owner','Due','Status'].map(h=><th key={h} className={th}>{h}</th>)}</tr></thead>
+            <tbody>{s.sns.map((r,i)=>(
+              <tr key={i} className={i%2===0?'bg-white':'bg-gray-50'}>
+                <td className={td+" w-1/2"}><F v={r.step}  set={updArr('sns',i,'step')}   edit={ed.sales} ph="Next step..."/></td>
+                <td className={td}><F v={r.owner} set={updArr('sns',i,'owner')} edit={ed.sales} ph="Owner"/></td>
+                <td className={td}><F v={r.due}   set={updArr('sns',i,'due')}   edit={ed.sales} ph="DD/MM/YYYY"/></td>
+                <td className={td}><Bdg v={r.status} set={updArr('sns',i,'status')} edit={ed.sales}/></td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </Sec>
+
+        {/* ── MARKETING ── */}
+        <Sec title="Marketing" owner="VP Marketing" edit={ed.mkt} onEdit={()=>toggleEdit('mkt')} onSave={()=>saveEdit('mkt')} lu={s.lu.mkt}>
+          <p className="font-semibold text-xs uppercase tracking-wide mb-2" style={{color:P}}>Overall Update</p>
+          <div className="mb-5"><F v={s.mkt} set={upd('mkt')} edit={ed.mkt} ph="Marketing update for this week..." multi={true}/></div>
+          <p className="font-semibold text-xs uppercase tracking-wide mb-3" style={{color:P}}>Next Steps from Last Meeting</p>
+          <table className="w-full">
+            <thead><tr>{['Action','Owner','Due','Status'].map(h=><th key={h} className={th}>{h}</th>)}</tr></thead>
+            <tbody>{s.mns.map((r,i)=>(
+              <tr key={i} className={i%2===0?'bg-white':'bg-gray-50'}>
+                <td className={td+" w-1/2"}><F v={r.action} set={updArr('mns',i,'action')} edit={ed.mkt} ph="Action item..."/></td>
+                <td className={td}><F v={r.owner} set={updArr('mns',i,'owner')} edit={ed.mkt} ph="Owner"/></td>
+                <td className={td}><F v={r.due}   set={updArr('mns',i,'due')}   edit={ed.mkt} ph="DD/MM/YYYY"/></td>
+                <td className={td}><Bdg v={r.status} set={updArr('mns',i,'status')} edit={ed.mkt}/></td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </Sec>
+
+        {/* ── CORE STREAMS ── */}
+        <div className="pt-2 pb-1">
+          <h2 className="font-bold text-xs uppercase tracking-widest" style={{color:P}}>Core Streams</h2>
+          <div className="h-px bg-purple-100 mt-2 mb-4"/>
+        </div>
+
+        {STREAMS.map(({key,title,desc,fields})=>{
+          const st=s[key]; const ss=sStream(key);
+          return(
+            <Sec key={key} title={title} owner={st.owner||'—'} edit={ed[key]} onEdit={()=>toggleEdit(key)} onSave={()=>saveEdit(key)} lu={s.lu[key]}>
+              <p className="text-xs text-gray-500 italic mb-3">{desc}</p>
+              <div className="flex flex-wrap gap-4 mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 font-medium">Status:</span>
+                  <Bdg v={st.status} set={ss('status')} edit={ed[key]}/>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 font-medium">Target:</span>
+                  {ed[key]?<input value={st.target} onChange={e=>ss('target')(e.target.value)} placeholder="e.g. $500k Q2" className="border rounded px-2 py-0.5 text-xs w-32 focus:outline-none focus:ring-1 focus:ring-purple-600"/>
+                    :<span className="text-xs font-semibold text-gray-700">{st.target||'—'}</span>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 font-medium">Stream Lead:</span>
+                  {ed[key]?<input value={st.owner} onChange={e=>ss('owner')(e.target.value)} placeholder="Name" className="border rounded px-2 py-0.5 text-xs w-32 focus:outline-none focus:ring-1 focus:ring-purple-600"/>
+                    :<span className="text-xs font-semibold text-gray-700">{st.owner||'—'}</span>}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {fields.map(({k,label,ph})=>(
+                  <div key={k} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">{label}</p>
+                    <F v={st[k]} set={ss(k)} edit={ed[key]} ph={ph} multi={true}/>
+                  </div>
+                ))}
+              </div>
+            </Sec>
+          );
+        })}
+
+        {/* ── OTHER BU ── */}
+        <div className="pt-2 pb-1">
+          <h2 className="font-bold text-xs uppercase tracking-widest" style={{color:P}}>Other Business Units</h2>
+          <div className="h-px bg-purple-100 mt-2 mb-4"/>
+        </div>
+
+        {/* CONTENT LAB */}
+        <Sec title="Content Lab" owner="MD Content Lab" edit={ed.clab} onEdit={()=>toggleEdit('clab')} onSave={()=>saveEdit('clab')} lu={s.lu.clab}>
+          <p className="font-semibold text-xs uppercase tracking-wide mb-3" style={{color:P}}>Deals in Pipeline</p>
+          <div className="overflow-x-auto mb-6">
+            <table className="w-full">
+              <thead><tr>{['Client / Deal','Value ($)','Stage','Status'].map(h=><th key={h} className={th}>{h}</th>)}</tr></thead>
+              <tbody>{s.cdl.map((r,i)=>(
+                <tr key={i} className={i%2===0?'bg-white':'bg-gray-50'}>
+                  <td className={td}><F v={r.name}  set={updArr('cdl',i,'name')}  edit={ed.clab} ph="Client name"/></td>
+                  <td className={td}><F v={r.value} set={updArr('cdl',i,'value')} edit={ed.clab} ph="0"/></td>
+                  <td className={td}><Stg v={r.stage} set={updArr('cdl',i,'stage')} edit={ed.clab}/></td>
+                  <td className={td}><Bdg v={r.status} set={updArr('cdl',i,'status')} edit={ed.clab}/></td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+          <p className="font-semibold text-xs uppercase tracking-wide mb-3" style={{color:P}}>Largest 5 Projects</p>
+          <table className="w-full">
+            <thead><tr>{['Project','Status Update',''].map(h=><th key={h} className={th}>{h}</th>)}</tr></thead>
+            <tbody>{s.cpj.map((r,i)=>(
+              <tr key={i} className={i%2===0?'bg-white':'bg-gray-50'}>
+                <td className={td+" w-1/3"}><F v={r.name}   set={updArr('cpj',i,'name')}   edit={ed.clab} ph="Project name"/></td>
+                <td className={td+" w-1/2"}><F v={r.update} set={updArr('cpj',i,'update')} edit={ed.clab} ph="1-liner status..."/></td>
+                <td className={td}><Bdg v={r.status} set={updArr('cpj',i,'status')} edit={ed.clab}/></td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </Sec>
+
+        {/* UREED */}
+        <Sec title="Ureed" owner="MD Ureed" edit={ed.urd} onEdit={()=>toggleEdit('urd')} onSave={()=>saveEdit('urd')} lu={s.lu.urd}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Pipeline Update</p>
+              <F v={s.urd.pipeline} set={updK('urd','pipeline')} edit={ed.urd} ph="Pipeline status, volume, key deals..." multi={true}/>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Potential Deals Highlight</p>
+              <F v={s.urd.deals} set={updK('urd','deals')} edit={ed.urd} ph="Key opportunities, sizes, timelines..." multi={true}/>
+            </div>
+          </div>
+        </Sec>
+
+        {/* SCREENS */}
+        <Sec title="Screens / PMI" owner="COO" edit={ed.scr} onEdit={()=>toggleEdit('scr')} onSave={()=>saveEdit('scr')} lu={s.lu.scr}>
+          <F v={s.scr} set={upd('scr')} edit={ed.scr} ph="Post-merger integration update — milestones, blockers, next steps..." multi={true}/>
+        </Sec>
+
+        {/* OPS */}
+        <Sec title="Operations" owner="COO" edit={ed.ops} onEdit={()=>toggleEdit('ops')} onSave={()=>saveEdit('ops')} lu={s.lu.ops} borderLeft={!!s.ops}>
+          {ed.ops
+            ?<textarea value={s.ops} onChange={e=>upd('ops')(e.target.value)} placeholder="Flag any execution issues, delays, or blockers..." rows={3} className={iCls+' resize-none'}/>
+            :<p className={s.ops?'text-sm':'text-sm text-gray-400 italic'}>{s.ops||'No issues flagged.'}</p>}
+        </Sec>
+
+        <p className="text-center text-xs text-gray-400 pb-8 pt-2">Arabic.ai · Confidential · Internal Use Only</p>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Dashboard/>);
+</script>
+</body>
+</html>
