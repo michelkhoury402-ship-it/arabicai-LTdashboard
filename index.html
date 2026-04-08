@@ -27,6 +27,11 @@ const ts=()=>new Date().toLocaleString('en-GB',{day:'2-digit',month:'2-digit',ho
 const iCls="border border-gray-200 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-1 focus:ring-purple-600";
 const mkArr=(n,d)=>Array.from({length:n},()=>({...d}));
 
+// ── FIREBASE CONFIG — paste your values here once, push to GitHub ──────
+const FB_API_KEY = "";   // e.g. "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXX"
+const FB_DB_URL  = "";   // e.g. "https://your-project-default-rtdb.firebaseio.com"
+// ───────────────────────────────────────────────────────────────────────
+
 const DEFAULT={
   weekDate:'08/04/2026',
   fin:{a:'',t:'',ly:'',pipe:'',commit:''},
@@ -541,7 +546,11 @@ function Dashboard({db,onDisconnect}){
 /* ── App root ── */
 function App(){
   const [loggedIn,setLoggedIn]=useState(()=>sessionStorage.getItem('arabicai_auth')==='1');
+
+  // Use hardcoded config if available, otherwise fall back to localStorage
+  const hardcoded = FB_API_KEY && FB_DB_URL ? {apiKey:FB_API_KEY,databaseURL:FB_DB_URL} : null;
   const [config,setConfig]=useState(()=>{
+    if(hardcoded) return hardcoded;
     try{const c=localStorage.getItem('arabicai_firebase_cfg');return c?JSON.parse(c):null;}
     catch{return null;}
   });
