@@ -18,7 +18,7 @@
 <body class="bg-white">
 <div id="root"></div>
 <script type="text/babel">
-const {useState,useEffect,useRef,useCallback}=React;
+const {useState,useEffect,useRef}=React;
 const PRP='#6B21A8';
 const STATUSES=['On Track','At Risk','In Progress','Done','Overdue','Stalled','Delayed','Not Started'];
 const STAGES=['Prospecting','Qualifying','Proposal','Negotiation','Committed'];
@@ -27,10 +27,13 @@ const ts=()=>new Date().toLocaleString('en-GB',{day:'2-digit',month:'2-digit',ho
 const iCls="border border-gray-200 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-1 focus:ring-purple-600";
 const mkArr=(n,d)=>Array.from({length:n},()=>({...d}));
 
-// ── FIREBASE CONFIG — paste your values here once, push to GitHub ──────
-const FB_API_KEY = "";   // e.g. "AIzaSyAYfnTDbvocUJKtXT2mIL987_k2oF2pIk0"
-const FB_DB_URL  = "";   // e.g. "https://lt-project-18dd3-default-rtdb.firebaseio.com"
-// ───────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  PASTE YOUR FIREBASE VALUES HERE — do this once, push to GitHub
+//  Everyone will connect automatically, no prompts ever again.
+// ═══════════════════════════════════════════════════════════════
+const FB_API_KEY = "AIzaSyAYfnTDbvocUJKtXT2mIL987_k2oF2pIk0";   // paste your apiKey here
+const FB_DB_URL  = "https://lt-project-18dd3-default-rtdb.firebaseio.com";   // paste your databaseURL here
+// ═══════════════════════════════════════════════════════════════
 
 const DEFAULT={
   weekDate:'08/04/2026',
@@ -54,7 +57,6 @@ const DEFAULT={
   urd:{pipeline:'',deals:''},scr:'',ops:'',
 };
 
-/* ── Shared UI helpers ── */
 function F({v,set,edit,ph='',multi=false,max}){
   if(!edit)return <span className={!v?'text-gray-400 italic text-sm':'text-sm'}>{v||ph||'\u2014'}</span>;
   const p={value:v,onChange:e=>set(e.target.value),placeholder:ph,className:iCls};
@@ -81,8 +83,7 @@ function Sec({title,owner,edit,onEdit,onSave,lu,children,borderLeft}){
           {lu&&<span className="text-xs text-gray-400">{lu}</span>}
           {edit
             ?<button onClick={onSave} className="text-xs text-white px-3 py-1 rounded-full" style={{background:PRP}}>Save</button>
-            :<button onClick={onEdit} className="text-xs px-3 py-1 rounded-full border" style={{color:PRP,borderColor:'#d8b4fe'}}>Edit</button>
-          }
+            :<button onClick={onEdit} className="text-xs px-3 py-1 rounded-full border" style={{color:PRP,borderColor:'#d8b4fe'}}>Edit</button>}
         </div>
       </div>
       <div className="p-5">{children}</div>
@@ -125,18 +126,15 @@ function LoginScreen({onLogin}){
   const [err,setErr]=useState('');
   const [showPw,setShowPw]=useState(false);
   const [shake,setShake]=useState(false);
-
   const attempt=()=>{
     if(user.trim()==='LTmember'&&pass==='LTmember321+'){
-      sessionStorage.setItem('arabicai_auth','1');
-      onLogin();
-    } else {
+      sessionStorage.setItem('arabicai_auth','1');onLogin();
+    }else{
       setErr('Incorrect username or password.');
       setShake(true);setTimeout(()=>setShake(false),500);
     }
   };
   const onKey=e=>e.key==='Enter'&&attempt();
-
   return(
     <div className="min-h-screen bg-white flex items-center justify-center p-6">
       <div className="max-w-sm w-full">
@@ -144,30 +142,22 @@ function LoginScreen({onLogin}){
           <h1 className="font-black text-3xl tracking-tight mb-1" style={{color:PRP}}>Arabic.ai</h1>
           <p className="text-sm text-gray-400">Leadership Dashboard</p>
         </div>
-        <div className={`border border-gray-200 rounded-2xl p-7 shadow-sm ${shake?'border-red-300':''}`} style={{transition:'border-color 0.2s'}}>
+        <div className={`border rounded-2xl p-7 shadow-sm ${shake?'border-red-300':'border-gray-200'}`}>
           <h2 className="font-bold text-base mb-5 text-gray-800">Sign in</h2>
           <div className="space-y-4">
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Username</label>
-              <input value={user} onChange={e=>{setUser(e.target.value);setErr('');}} onKeyDown={onKey} placeholder="Enter username" autoFocus
-                className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm w-full focus:outline-none focus:ring-2 focus:border-transparent" style={{'--tw-ring-color':PRP}}
-              />
+              <input value={user} onChange={e=>{setUser(e.target.value);setErr('');}} onKeyDown={onKey} placeholder="Enter username" autoFocus className={iCls}/>
             </div>
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Password</label>
               <div className="relative">
-                <input type={showPw?'text':'password'} value={pass} onChange={e=>{setPass(e.target.value);setErr('');}} onKeyDown={onKey} placeholder="Enter password"
-                  className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm w-full focus:outline-none focus:ring-2 focus:border-transparent pr-16"
-                />
-                <button onClick={()=>setShowPw(s=>!s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium" style={{color:PRP}}>
-                  {showPw?'Hide':'Show'}
-                </button>
+                <input type={showPw?'text':'password'} value={pass} onChange={e=>{setPass(e.target.value);setErr('');}} onKeyDown={onKey} placeholder="Enter password" className={iCls+" pr-16"}/>
+                <button onClick={()=>setShowPw(s=>!s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium" style={{color:PRP}}>{showPw?'Hide':'Show'}</button>
               </div>
             </div>
             {err&&<p className="text-xs text-red-500 font-medium">{err}</p>}
-            <button onClick={attempt} className="w-full py-2.5 rounded-lg text-white font-semibold text-sm mt-1 hover:opacity-90 transition-opacity" style={{background:PRP}}>
-              Sign in
-            </button>
+            <button onClick={attempt} className="w-full py-2.5 rounded-lg text-white font-semibold text-sm hover:opacity-90 transition-opacity" style={{background:PRP}}>Sign in</button>
           </div>
         </div>
         <p className="text-center text-xs text-gray-400 mt-6">Arabic.ai · Internal Use Only · Session expires on tab close</p>
@@ -176,79 +166,27 @@ function LoginScreen({onLogin}){
   );
 }
 
-/* ── Setup Screen ── */
-function SetupScreen({onConnect,onSkip}){
-  const [apiKey,setApiKey]=useState('');
-  const [dbUrl,setDbUrl]=useState('');
-  const [err,setErr]=useState('');
-  const [loading,setLoading]=useState(false);
-
-  const connect=async()=>{
-    if(!apiKey.trim()||!dbUrl.trim()){setErr('Please fill in both fields.');return;}
-    setLoading(true);setErr('');
-    try{
-      let app;
-      try{app=firebase.app('arabicai_test');}
-      catch{app=firebase.initializeApp({apiKey:apiKey.trim(),databaseURL:dbUrl.trim()},'arabicai_test');}
-      const db=firebase.database(app);
-      await db.ref('_test').set({t:Date.now()});
-      await db.ref('_test').remove();
-      onConnect({apiKey:apiKey.trim(),databaseURL:dbUrl.trim()});
-    }catch(e){
-      setErr('Connection failed. Double-check your API Key and Database URL.');
-      setLoading(false);
-    }
-  };
-
+/* ── No-config screen (only shown if FB_ constants are empty) ── */
+function NoConfigScreen(){
   return(
     <div className="min-h-screen bg-white flex items-center justify-center p-6">
-      <div className="max-w-lg w-full">
-        <h1 className="font-black text-2xl mb-1" style={{color:PRP}}>Arabic.ai</h1>
-        <p className="text-sm text-gray-500 mb-8">Leadership Dashboard — One-time Setup</p>
-
-        <div className="border border-gray-200 rounded-xl p-6 mb-4">
-          <h2 className="font-bold text-sm mb-1">Connect Firebase for real-time multi-user sync</h2>
-          <p className="text-xs text-gray-500 mb-5">All team members will see updates instantly. Free Firebase tier is more than enough.</p>
-
-          <div className="bg-purple-50 border border-purple-100 rounded-lg p-4 mb-5 space-y-2">
-            <p className="text-xs font-bold text-purple-800 mb-1">How to get your credentials (5 min):</p>
-            <p className="text-xs text-gray-700">1. Go to <a href="https://console.firebase.google.com" target="_blank" className="text-purple-700 underline font-medium">console.firebase.google.com</a> → <strong>Add project</strong> → skip Analytics → Create</p>
-            <p className="text-xs text-gray-700">2. Left menu: <strong>Build → Realtime Database → Create database → Start in test mode → Enable</strong></p>
-            <p className="text-xs text-gray-700">3. Copy the <strong>Database URL</strong> shown at the top (e.g. <code className="bg-white px-1 rounded">https://your-project-rtdb.firebaseio.com</code>)</p>
-            <p className="text-xs text-gray-700">4. Go to <strong>Project Settings</strong> (gear icon top-left) → <strong>Your apps → Add app → Web (&lt;/&gt;)</strong> → Register → copy <code className="bg-white px-1 rounded">apiKey</code> from the config block</p>
-          </div>
-
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">Firebase API Key</label>
-              <input value={apiKey} onChange={e=>setApiKey(e.target.value)} placeholder="AIzaSy..." className={iCls}/>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">Firebase Realtime Database URL</label>
-              <input value={dbUrl} onChange={e=>setDbUrl(e.target.value)} placeholder="https://your-project-default-rtdb.firebaseio.com" className={iCls}/>
-            </div>
-            {err&&<p className="text-xs text-red-500 font-medium">{err}</p>}
-            <button onClick={connect} disabled={loading} className="w-full py-2.5 rounded-lg text-white font-semibold text-sm disabled:opacity-60" style={{background:PRP}}>
-              {loading?'Testing connection…':'Connect & Launch Dashboard'}
-            </button>
-          </div>
+      <div className="max-w-md w-full text-center">
+        <h1 className="font-black text-2xl mb-2" style={{color:PRP}}>One more step</h1>
+        <p className="text-sm text-gray-500 mb-6">Open <code className="bg-gray-100 px-1 rounded">index.html</code> in GitHub, find these two lines near the top of the script, and paste your Firebase values:</p>
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-left text-xs font-mono mb-6">
+          <p>const FB_API_KEY = <span className="text-purple-700">"AIzaSy..."</span>;</p>
+          <p>const FB_DB_URL &nbsp;= <span className="text-purple-700">"https://your-project-rtdb.firebaseio.com"</span>;</p>
         </div>
-
-        <div className="text-center">
-          <button onClick={onSkip} className="text-xs text-gray-400 underline hover:text-gray-600">
-            Skip — use this device only (no sync)
-          </button>
-        </div>
+        <p className="text-xs text-gray-400">Commit the file → Vercel redeploys → done forever. Find your values in the Firebase Console → Project Settings → Your apps (API key) and Realtime Database (URL).</p>
       </div>
     </div>
   );
 }
 
 /* ── Dashboard ── */
-function Dashboard({db,onDisconnect}){
+function Dashboard({db}){
   const [S,setS]=useState(()=>{
-    try{const s=localStorage.getItem('arabicai_v1');return s?JSON.parse(s):DEFAULT;}
-    catch{return DEFAULT;}
+    try{const s=localStorage.getItem('arabicai_v1');return s?JSON.parse(s):DEFAULT;}catch{return DEFAULT;}
   });
   const [ed,setEd]=useState({});
   const [lu,setLu]=useState({});
@@ -258,7 +196,6 @@ function Dashboard({db,onDisconnect}){
   const edRef=useRef({});
   useEffect(()=>{edRef.current=ed;},[ed]);
 
-  /* Firebase listener */
   useEffect(()=>{
     if(!db)return;
     const ref=db.ref('arabicai_dashboard');
@@ -281,11 +218,8 @@ function Dashboard({db,onDisconnect}){
     localStorage.setItem('arabicai_v1',JSON.stringify(state));
     if(!db)return;
     setSync('saving');
-    db.ref('arabicai_dashboard').set(state)
-      .then(()=>setSync('live'))
-      .catch(()=>setSync('error'));
+    db.ref('arabicai_dashboard').set(state).then(()=>setSync('live')).catch(()=>setSync('error'));
   };
-
   const upd=(path,val)=>setS(prev=>{
     const next=JSON.parse(JSON.stringify(prev));
     const parts=path.split('.');let obj=next;
@@ -302,18 +236,14 @@ function Dashboard({db,onDisconnect}){
     setS(cur=>{persist(cur);return cur;});
   };
 
-  const syncPill=sync==='live'
-    ?<span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">● Live</span>
-    :sync==='saving'
-    ?<span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">⟳ Saving</span>
-    :sync==='connecting'
-    ?<span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium">Connecting…</span>
-    :sync==='offline'
-    ?<span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium">○ Local only</span>
+  const syncPill=
+    sync==='live'?<span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">● Live</span>
+    :sync==='saving'?<span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">⟳ Saving</span>
+    :sync==='connecting'?<span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium">Connecting…</span>
+    :sync==='offline'?<span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium">○ Local only</span>
     :<span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-medium">⚠ Sync error</span>;
 
   const {fin,deals,np,sns,mkt,mns,gov,bnk,cst,trl,cdl,cpj,urd,scr,ops,weekDate}=S;
-
   const streams=[
     {key:'gov',title:'Government Stream',desc:'Large government projects — LLM on-prem, Agentic Platform, FDEs. Outreach-driven. Product building agentic platform templates.',state:gov,
       fields:[{k:'product',label:'Product Update',ph:'Agentic platform template progress...'},{k:'marketing',label:'Marketing Update',ph:'Outreach campaigns, content...'},{k:'sales',label:'Sales Update',ph:'Active conversations, intros...'}]},
@@ -327,7 +257,6 @@ function Dashboard({db,onDisconnect}){
 
   return(
     <div className="min-h-screen bg-white" style={{fontFamily:'system-ui,sans-serif',fontSize:meetingMode?'15px':'13px'}}>
-      {/* Header */}
       <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 bg-white z-20 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
@@ -339,8 +268,7 @@ function Dashboard({db,onDisconnect}){
             <span className="text-xs text-gray-400">Week of</span>
             {editDate
               ?<input value={weekDate} onChange={e=>upd('weekDate',e.target.value)} onBlur={()=>setEditDate(false)} className="text-xs border rounded px-1 py-0.5 w-24" autoFocus/>
-              :<button onClick={()=>setEditDate(true)} className="text-xs font-medium underline decoration-dotted" style={{color:PRP}}>{weekDate}</button>
-            }
+              :<button onClick={()=>setEditDate(true)} className="text-xs font-medium underline decoration-dotted" style={{color:PRP}}>{weekDate}</button>}
             <span className="no-print">{syncPill}</span>
           </div>
         </div>
@@ -350,12 +278,11 @@ function Dashboard({db,onDisconnect}){
           </button>
           <button onClick={()=>window.print()} className="text-xs px-3 py-1.5 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50">Print</button>
           <button onClick={()=>{if(window.confirm('Reset ALL dashboard data?')){const d=DEFAULT;setS(d);persist(d);}}} className="text-xs px-3 py-1.5 rounded-full border border-red-100 text-red-400 hover:bg-red-50">Reset</button>
-          <button onClick={onDisconnect} className="text-xs px-3 py-1.5 rounded-full border border-gray-200 text-gray-400 hover:bg-gray-50">⚙ Reconnect</button>
+          <button onClick={()=>{sessionStorage.removeItem('arabicai_auth');window.location.reload();}} className="text-xs px-3 py-1.5 rounded-full border border-gray-200 text-gray-400 hover:bg-gray-50">Sign out</button>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-6">
-
         {/* FINANCE */}
         <Sec title="Finance" owner="CFO" edit={ed.fin} onEdit={()=>toggleEdit('fin')} onSave={()=>saveEdit('fin')} lu={lu.fin}>
           <div className="flex gap-3 flex-wrap">
@@ -391,7 +318,6 @@ function Dashboard({db,onDisconnect}){
               ))}</tbody>
             </table>
           </div>
-
           <p className="font-semibold text-xs uppercase tracking-wide mb-3" style={{color:PRP}}>New Additions to Pipeline</p>
           <div className="overflow-x-auto mb-6">
             <table className="w-full">
@@ -406,7 +332,6 @@ function Dashboard({db,onDisconnect}){
               ))}</tbody>
             </table>
           </div>
-
           <p className="font-semibold text-xs uppercase tracking-wide mb-3" style={{color:PRP}}>Next Steps from Last Meeting</p>
           <table className="w-full">
             <thead><tr>{['Action','Owner','Due','Status'].map(h=><th key={h} className={th}>{h}</th>)}</tr></thead>
@@ -444,22 +369,16 @@ function Dashboard({db,onDisconnect}){
           <h2 className="font-bold text-xs uppercase tracking-widest" style={{color:PRP}}>Core Streams</h2>
           <div className="h-px bg-purple-100 mt-2 mb-4"/>
         </div>
-
         {streams.map(({key,title,desc,state,fields})=>(
           <Sec key={key} title={title} owner={state.owner||'—'} edit={ed[key]} onEdit={()=>toggleEdit(key)} onSave={()=>saveEdit(key)} lu={lu[key]}>
             <p className="text-xs text-gray-500 italic mb-3">{desc}</p>
             <div className="flex flex-wrap gap-4 mb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 font-medium">Status:</span>
-                <Bdg v={state.status} set={v=>upd(`${key}.status`,v)} edit={ed[key]}/>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 font-medium">Target:</span>
+              <div className="flex items-center gap-2"><span className="text-xs text-gray-500 font-medium">Status:</span><Bdg v={state.status} set={v=>upd(`${key}.status`,v)} edit={ed[key]}/></div>
+              <div className="flex items-center gap-2"><span className="text-xs text-gray-500 font-medium">Target:</span>
                 {ed[key]?<input value={state.target} onChange={e=>upd(`${key}.target`,e.target.value)} placeholder="e.g. $500k Q2" className="border rounded px-2 py-0.5 text-xs w-32 focus:outline-none focus:ring-1 focus:ring-purple-600"/>
                   :<span className="text-xs font-semibold text-gray-700">{state.target||'—'}</span>}
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 font-medium">Stream Lead:</span>
+              <div className="flex items-center gap-2"><span className="text-xs text-gray-500 font-medium">Stream Lead:</span>
                 {ed[key]?<input value={state.owner} onChange={e=>upd(`${key}.owner`,e.target.value)} placeholder="Name" className="border rounded px-2 py-0.5 text-xs w-32 focus:outline-none focus:ring-1 focus:ring-purple-600"/>
                   :<span className="text-xs font-semibold text-gray-700">{state.owner||'—'}</span>}
               </div>
@@ -533,54 +452,33 @@ function Dashboard({db,onDisconnect}){
         <Sec title="Operations" owner="COO" edit={ed.ops} onEdit={()=>toggleEdit('ops')} onSave={()=>saveEdit('ops')} lu={lu.ops} borderLeft={!!ops}>
           {ed.ops
             ?<textarea value={ops} onChange={e=>upd('ops',e.target.value)} placeholder="Flag any execution issues, delays, or blockers..." rows={3} className={iCls+' resize-none'}/>
-            :<p className={ops?'text-sm':'text-sm text-gray-400 italic'}>{ops||'No issues flagged.'}</p>
-          }
+            :<p className={ops?'text-sm':'text-sm text-gray-400 italic'}>{ops||'No issues flagged.'}</p>}
         </Sec>
-
         <p className="text-center text-xs text-gray-400 pb-8 pt-2">Arabic.ai · Confidential · Internal Use Only</p>
       </div>
     </div>
   );
 }
 
-/* ── App root ── */
+/* ── App root — all hooks declared before any conditional returns ── */
 function App(){
   const [loggedIn,setLoggedIn]=useState(()=>sessionStorage.getItem('arabicai_auth')==='1');
-
-  // Use hardcoded config if available, otherwise fall back to localStorage
-  const hardcoded = FB_API_KEY && FB_DB_URL ? {apiKey:FB_API_KEY,databaseURL:FB_DB_URL} : null;
-  const [config,setConfig]=useState(()=>{
-    if(hardcoded) return hardcoded;
-    try{const c=localStorage.getItem('arabicai_firebase_cfg');return c?JSON.parse(c):null;}
-    catch{return null;}
-  });
-  const [offline,setOffline]=useState(false);
-
-  if(!loggedIn) return <LoginScreen onLogin={()=>setLoggedIn(true)}/>;
   const [db,setDb]=useState(null);
+  const hasHardcoded=FB_API_KEY.trim()!==''&&FB_DB_URL.trim()!=='';
 
   useEffect(()=>{
-    if(!config)return;
+    if(!hasHardcoded)return;
     try{
       let app;
       try{app=firebase.app('arabicai');}
-      catch{app=firebase.initializeApp(config,'arabicai');}
+      catch{app=firebase.initializeApp({apiKey:FB_API_KEY,databaseURL:FB_DB_URL},'arabicai');}
       setDb(firebase.database(app));
     }catch(e){console.error('Firebase init error',e);}
-  },[config]);
+  },[]);
 
-  const handleConnect=(cfg)=>{
-    localStorage.setItem('arabicai_firebase_cfg',JSON.stringify(cfg));
-    setConfig(cfg);setOffline(false);
-  };
-
-  const handleDisconnect=()=>{
-    localStorage.removeItem('arabicai_firebase_cfg');
-    setConfig(null);setDb(null);setOffline(false);
-  };
-
-  if(!config&&!offline)return <SetupScreen onConnect={handleConnect} onSkip={()=>setOffline(true)}/>;
-  return <Dashboard db={db} onDisconnect={handleDisconnect}/>;
+  if(!loggedIn) return <LoginScreen onLogin={()=>setLoggedIn(true)}/>;
+  if(!hasHardcoded) return <NoConfigScreen/>;
+  return <Dashboard db={db}/>;
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
